@@ -10,8 +10,13 @@ import UIKit
 struct EmployeeModel {
     var fname: String
     var lname: String
+    var age: Int
 }
-
+enum EmployeeCrud {
+    case delete
+    case edit
+    case add
+}
 
 
 
@@ -23,43 +28,14 @@ class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        employeeTableview.register(UITableViewCell.self, forCellReuseIdentifier: "employeeCell")
         
     }
 
-
     @IBAction func plusBtnPressed(_ sender: UIBarButtonItem) {
-        performAction(isEditing: false, index: 0)
+        performAction(employeeCrud: .add)
         
     }
     
-    func performAction(isEditing:Bool,index:Int){
-        let alertController = UIAlertController(title: "Alert", message: "Add item", preferredStyle: .alert)
-        alertController.addTextField { (fnameField) in
-            fnameField.placeholder = "Enter the first Name"
-        }
-        alertController.addTextField { (lnameField) in
-            lnameField.placeholder = "Enter the first Name"
-        }
-        let ok = UIAlertAction(title: "OK", style: .default) { (_) in
-            if let firstName = alertController.textFields?.first?.text{
-                if let lastName = alertController.textFields?.last?.text{
-                    
-                    if(isEditing){
-                        self.employeeArray.insert(EmployeeModel(fname: firstName, lname: lastName), at: index)
-                        self.employeeArray.remove(at: index + 1 )
-                    }
-                    else{
-                        self.employeeArray.append(EmployeeModel(fname: firstName, lname: lastName))}
-                    
-                    self.employeeTableview.reloadData()
-                }
-            }
-        }
-        alertController.addAction(ok)
-        self.navigationController?.present(alertController, animated: true, completion: nil)
-    }
-        
     }
     
     
@@ -75,53 +51,118 @@ extension ViewController: UITableViewDataSource{
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: "employeeCell") else {
+        
+        //let ages:[Int] = [30,31,32,33,34,35,35,37,38,39,40,41,42,43,44,45]
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "employeeCell")
+        else {
             return UITableViewCell()
         }
+        
         cell.textLabel?.text = " \(employeeArray[indexPath.row].fname)  \(employeeArray[indexPath.row].lname)"
+        cell.detailTextLabel?.text = "Age:   \(employeeArray[indexPath.row].age)"
         return cell
     }
-    
-    
-    
 }
 
 //MARK: Tableview Delegate methods
 
  extension ViewController: UITableViewDelegate{
+   
     
-    func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-        return true
-    }
-    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
-        if editingStyle == .delete{
-            self.employeeArray.remove(at: indexPath.row)
-            self.employeeTableview
-                .reloadData()
+    func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let delete = UIContextualAction(style: .destructive, title: "delete") { (_, _, _) in
+            self.performAction(employeeCrud: .delete, index: indexPath.row)
         }
-       
-    }
-    func tableView(_ tableView: UITableView, editActionsForRowAt indexPath: IndexPath) -> [UITableViewRowAction]? {
-        let editBtn = UITableViewRowAction(style: .normal, title: "Edit") { (_, IndexPath) in
-            
-            self.performAction(isEditing: true, index: indexPath.row)
+        let edit = UIContextualAction(style: .normal, title: "edit") { (_, _, _) in
+            self.performAction(employeeCrud: .edit, index: indexPath.row)
         }
-        editBtn.backgroundColor = .green
-        let deleteBtn = UITableViewRowAction(style: .normal, title: "delete") { (_, IndexPath) in
-            self.employeeArray.remove(at: indexPath.row)
-            self.employeeTableview
-                .reloadData()
-            
-        }
-        deleteBtn.backgroundColor = .red
-        
-        UIButton.appearance().setTitleColor(.blue, for: UIControl.State.normal)
-
-       return [editBtn,deleteBtn]
-        
+        let actions = UISwipeActionsConfiguration(actions: [delete, edit])
+        return actions
     }
-    
     
     
 }
 
+// MARK: Function
+extension ViewController{
+    func performAction(employeeCrud:EmployeeCrud,index:Int = 0)  {
+        switch employeeCrud {
+        case .delete:
+            self.employeeArray.remove(at: index)
+            self.employeeTableview.reloadData()
+        default:
+            let alertController = UIAlertController(title: "Welcome to ", message: "Add or Edit", preferredStyle: .alert)
+            alertController.addTextField { (fnameField) in
+                if(employeeCrud == .edit){
+                    fnameField.text = "\(self.employeeArray[index].fname)"
+                }else{
+                    fnameField.placeholder = "Enter the first Name"}
+            
+            alertController.addTextField { (lnameField) in
+                if(employeeCrud == .edit){
+                    lnameField.text = "\(self.employeeArray[index].lname)"
+                }else{
+                    lnameField.placeholder = "Enter last name"}
+
+            
+            let ok = UIAlertAction(title: "OK", style: .default) { (_) in
+                if let firstName = alertController.textFields?.first?.text{
+                    if let lastName = alertController.textFields?.last?.text{
+                        
+                        if(employeeCrud == .edit){
+                            self.employeeArray[index] = EmployeeModel(fname: firstName, lname: lastName, age: self.employeeArray[index].age)
+                        }
+                        if(employeeCrud == .add){
+                            self.employeeArray.append(EmployeeModel(fname: firstName, lname: lastName, age: Int.random(in: 30..<50)))}
+                    
+                        self.employeeTableview.reloadData()}}}
+                    alertController.addAction(ok)
+            self.navigationController?.present(alertController, animated: true, completion: nil)
+        }
+        }
+    }
+    
+    
+    
+    /*
+    
+    func  performAction(isEditing:Bool,index:Int,forDelete:Bool){
+        if(isEditing || !forDelete){
+            
+            let alertController = UIAlertController(title: "Welcome to ", message: "Add or Edit", preferredStyle: .alert)
+            alertController.addTextField { (fnameField) in
+                if(isEditing){
+                    fnameField.text = "\(self.employeeArray[index].fname)"
+                }else{
+                    fnameField.placeholder = "Enter the first Name"}
+            }
+            alertController.addTextField { (lnameField) in
+                if(isEditing){
+                    lnameField.text = "\(self.employeeArray[index].lname)"
+                }else{
+                    lnameField.placeholder = "Enter last name"}
+
+            }
+            let ok = UIAlertAction(title: "OK", style: .default) { (_) in
+                if let firstName = alertController.textFields?.first?.text{
+                    if let lastName = alertController.textFields?.last?.text{
+                        
+                        if(isEditing && !forDelete){
+                            self.employeeArray[index] = EmployeeModel(fname: firstName, lname: lastName, age: self.employeeArray[index].age)
+                        }
+                         if(!isEditing && !forDelete){
+                            self.employeeArray.append(EmployeeModel(fname: firstName, lname: lastName, age: Int.random(in: 30..<50)))}
+                    
+                        self.employeeTableview.reloadData()}}}
+                    alertController.addAction(ok)
+            self.navigationController?.present(alertController, animated: true, completion: nil)
+        }
+        else{
+            self.employeeArray.remove(at: index)
+            self.employeeTableview.reloadData()
+        }
+        
+        
+    }
+ */
+    }}
